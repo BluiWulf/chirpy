@@ -12,8 +12,11 @@ func main() {
 	server.Handler = mux
 	server.Addr = ":8080"
 
+	mux.Handle("/", http.FileServer(http.Dir(".")))
+
 	err := server.ListenAndServe()
 	if err != nil {
 		fmt.Printf("error starting server: %v", err)
+		return
 	}
 }
