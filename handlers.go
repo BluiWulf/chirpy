@@ -42,7 +42,14 @@ func (cfg *apiConfig) resetHandler(resW http.ResponseWriter, req *http.Request) 
 	resW.WriteHeader(http.StatusOK)
 	cfg.fileserverHits.Store(0)
 
-	err := cfg.dbQueries.ResetUsers(req.Context())
+	err := cfg.dbQueries.ResetChirps(req.Context())
+	if err != nil {
+		fmt.Printf("Error reseting chirps database: %s", err)
+		respondWithError(resW, http.StatusInternalServerError, "Unable to reset chirps databse")
+		return
+	}
+
+	err = cfg.dbQueries.ResetUsers(req.Context())
 	if err != nil {
 		fmt.Printf("Error reseting users database: %s", err)
 		respondWithError(resW, http.StatusInternalServerError, "Unable to reset users database")
@@ -66,10 +73,6 @@ func (cfg *apiConfig) chirpHandler(resW http.ResponseWriter, req *http.Request) 
 	type parameters struct {
 		Body   string    `json:"body"`
 		UserID uuid.UUID `json:"user_id"`
-	}
-
-	type returnVals struct {
-		CleanedBody string `json:"cleaned_body"`
 	}
 
 	decoder := json.NewDecoder(req.Body)
@@ -103,6 +106,34 @@ func (cfg *apiConfig) chirpHandler(resW http.ResponseWriter, req *http.Request) 
 		UserID:    chirp.UserID,
 	}
 	respondWithJson(resW, http.StatusCreated, resp)
+}
+
+func (cfg *apiConfig) getChirpsHandler(resW http.ResponseWriter, req *http.Request) {
+	if req.URL.Path != "/api/chirps" {
+		http.NotFound(resW, req)
+		return
+	}
+
+	dbChirps, err := cfg.dbQueries.RetrieveChirps(req.Context())
+	if err != nil {
+		fmt.Printf("Error retrieving chirps from database: %s", err)
+		respondWithError(resW, http.StatusInternalServerError, "Unable to retrieve chirps from database")
+		return
+	}
+
+	var chirps []Chirp
+	for _, chirp := range dbChirps {
+		chirps = append(chirps, Chirp{
+			ID:        chirp.ID.UUID,
+			CreatedAt: chirp.CreatedAt.Time,
+			UpdatedAt: chirp.UpdatedAt.Time,
+			Body:      profanityCheck(chirp.Body),
+			UserID:    chirp.UserID,
+		})
+	}
+
+	resp := chirps
+	respondWithJson(resW, http.StatusOK, resp)
 }
 
 func (cfg *apiConfig) usersHandler(resW http.ResponseWriter, req *http.Request) {

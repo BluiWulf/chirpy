@@ -68,6 +68,7 @@ func main() {
 	// API Endpoints
 	mux.HandleFunc("GET /api/healthz", statusHandler)
 	mux.HandleFunc("POST /api/chirps", apiCfg.chirpHandler)
+	mux.HandleFunc("GET /api/chirps", apiCfg.getChirpsHandler)
 	mux.HandleFunc("POST /api/users", apiCfg.usersHandler)
 
 	// Admin Endpoints
