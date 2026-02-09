@@ -136,6 +136,13 @@ func (cfg *apiConfig) getChirpsHandler(resW http.ResponseWriter, req *http.Reque
 	respondWithJson(resW, http.StatusOK, resp)
 }
 
+func (cfg *apiConfig) getSpecificChirpHandler(resW http.ResponseWriter, req *http.Request) {
+	if req.URL.Path != "/api/chirps" {
+		http.NotFound(resW, req)
+		return
+	}
+}
+
 func (cfg *apiConfig) usersHandler(resW http.ResponseWriter, req *http.Request) {
 	if req.URL.Path != "/api/users" {
 		http.NotFound(resW, req)
