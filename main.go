@@ -70,6 +70,7 @@ func main() {
 	mux.HandleFunc("POST /api/chirps", apiCfg.chirpHandler)
 	mux.HandleFunc("GET /api/chirps", apiCfg.getChirpsHandler)
 	mux.HandleFunc("POST /api/users", apiCfg.usersHandler)
+	mux.HandleFunc("GET /api/chirps/{chirpID}", apiCfg.getChirpByIdHandler)
 
 	// Admin Endpoints
 	mux.HandleFunc("GET /admin/metrics", apiCfg.metricsHandler)
