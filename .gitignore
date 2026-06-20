@@ -9,8 +9,8 @@
 *.dylib
 
 # Binaries for built project
-chirpy
-out
+/chirpy
+/out
 
 # Test binary, built with `go test -c`
 *.test

@@ -137,25 +137,28 @@ func (cfg *apiConfig) getChirpsHandler(resW http.ResponseWriter, req *http.Reque
 }
 
 func (cfg *apiConfig) getChirpByIdHandler(resW http.ResponseWriter, req *http.Request) {
-	if req.URL.Path != "/api/chirps/{chirpID}" {
-		http.NotFound(resW, req)
-		return
-	}
-
 	parsedId, err := uuid.Parse(req.PathValue("chirpID"))
 	id := uuid.NullUUID{
-		UUID:	parsedId,
-		Valid:	err == nil,
+		UUID:  parsedId,
+		Valid: err == nil,
 	}
 
 	dbChirp, err := cfg.dbQueries.GetChirpById(req.Context(), id)
 	if err != nil {
 		fmt.Printf("Error retrieving chirp with ID '%v' from database: %s", id.UUID, err)
-		respondWithError(resW, http.StatusInternalServerError, "Unable to retrieve chirp from database")
+		respondWithError(resW, http.StatusNotFound, "Unable to retrieve chirp from database")
 		return
 	}
-	
-	respondWithJson(resW, http.StatusOK, dbChirp)
+
+	chirp := Chirp{
+		ID:        dbChirp.ID.UUID,
+		CreatedAt: dbChirp.CreatedAt.Time,
+		UpdatedAt: dbChirp.UpdatedAt.Time,
+		Body:      profanityCheck(dbChirp.Body),
+		UserID:    dbChirp.UserID,
+	}
+
+	respondWithJson(resW, http.StatusOK, chirp)
 }
 
 func (cfg *apiConfig) usersHandler(resW http.ResponseWriter, req *http.Request) {
