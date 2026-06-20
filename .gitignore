@@ -10,7 +10,7 @@
 
 # Binaries for built project
 /chirpy
-/out
+out*
 
 # Test binary, built with `go test -c`
 *.test
