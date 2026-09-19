@@ -1,6 +1,7 @@
 package main
 
 import (
+	"chirpy/internal/auth"
 	"chirpy/internal/database"
 	"encoding/json"
 	"fmt"
@@ -168,7 +169,8 @@ func (cfg *apiConfig) usersHandler(resW http.ResponseWriter, req *http.Request) 
 	}
 
 	type parameters struct {
-		Email string `json:"email"`
+		Password string `json:"password"`
+		Email    string `json:"email"`
 	}
 
 	decoder := json.NewDecoder(req.Body)
@@ -180,7 +182,17 @@ func (cfg *apiConfig) usersHandler(resW http.ResponseWriter, req *http.Request) 
 		return
 	}
 
-	user, err := cfg.dbQueries.CreateUser(req.Context(), params.Email)
+	hashedPwd, err := auth.HashPassword(params.Password)
+	if err != nil {
+		fmt.Printf("Error hashing new user password: %v", err)
+		respondWithError(resW, http.StatusInternalServerError, "Unable to hash new user password")
+		return
+	}
+	newUserParams := database.CreateUserParams{
+		Email:          params.Email,
+		HashedPassword: hashedPwd,
+	}
+	user, err := cfg.dbQueries.CreateUser(req.Context(), newUserParams)
 	if err != nil {
 		fmt.Printf("Error adding new user to database: %s", err)
 		respondWithError(resW, http.StatusInternalServerError, "Unable to add new user to database")
@@ -193,4 +205,52 @@ func (cfg *apiConfig) usersHandler(resW http.ResponseWriter, req *http.Request) 
 		Email:     user.Email,
 	}
 	respondWithJson(resW, http.StatusCreated, resp)
+}
+
+func (cfg *apiConfig) loginHandler(resW http.ResponseWriter, req *http.Request) {
+	if req.URL.Path != "/api/login" {
+		http.NotFound(resW, req)
+		return
+	}
+
+	type parameters struct {
+		Password string `json:"password"`
+		Email    string `json:"email"`
+	}
+
+	decoder := json.NewDecoder(req.Body)
+	params := parameters{}
+	err := decoder.Decode(&params)
+	if err != nil {
+		fmt.Printf("Error decoding JSON: %s", err)
+		respondWithError(resW, http.StatusBadRequest, "Invalid request")
+		return
+	}
+
+	user, err := cfg.dbQueries.GetUserByEmail(req.Context(), params.Email)
+	if err != nil {
+		fmt.Printf("Error finding user in database: %v", err)
+		respondWithError(resW, http.StatusUnauthorized, "Incorrect email or password")
+		return
+	}
+
+	match, err := auth.CheckPasswordHash(params.Password, user.HashedPassword)
+	if err != nil {
+		fmt.Printf("Error validating user password: %v", err)
+		respondWithError(resW, http.StatusUnauthorized, "Incorrect email or password")
+		return
+	}
+	if !match {
+		fmt.Printf("Password is incorrect")
+		respondWithError(resW, http.StatusUnauthorized, "Incorrect email or password")
+		return
+	}
+
+	resp := User{
+		ID:        user.ID,
+		CreatedAt: user.CreatedAt.Time,
+		UpdatedAt: user.UpdatedAt.Time,
+		Email:     user.Email,
+	}
+	respondWithJson(resW, http.StatusOK, resp)
 }
