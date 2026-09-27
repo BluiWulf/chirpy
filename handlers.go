@@ -25,7 +25,6 @@ func (cfg *apiConfig) metricsHandler(resW http.ResponseWriter, req *http.Request
 		http.NotFound(resW, req)
 		return
 	}
-
 	count := cfg.fileserverHits.Load()
 	resW.Header().Set("Content-Type", "text/html")
 	resW.WriteHeader(http.StatusOK)
